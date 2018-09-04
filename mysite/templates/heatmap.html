@@ -1,0 +1,271 @@
+<!-- Developers : Isha Khanna -->
+{% extends "site_base.html" %}
+
+{% load i18n %}
+
+{% block head_title %}Heatmap{% endblock %}
+
+{% block body_class %}heatmap application{% endblock %}
+
+{% block extra_scripts %}
+    <script src="http://malsup.github.com/jquery.form.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.js"></script>
+    <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCSL7fyttFUapg8rXDc95zzkuIqPFTzEgM"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
+
+
+    <script type="text/javascript">
+
+        var mapOptions;
+        var map;
+        var marker;
+        var laa = 0;
+        var lonn = 0;
+        var heatmap = null;
+
+        function initialize()
+        {
+
+            if (navigator.geolocation) {
+                var geoSuccess = function(position) {
+                    laa = position.coords.latitude;
+                    lonn = position.coords.longitude;
+                    showPosition(position);
+                };
+                navigator.geolocation.getCurrentPosition(geoSuccess);
+            } else {
+                window.alert("Geolocation is not supported by this browser.");
+            }
+
+            mapOptions =
+            {
+                zoom: 8,
+                center: new google.maps.LatLng(laa, lonn),
+                mapTypeId: google.maps.MapTypeId.SATELLITE,
+                maxZoom: 20,
+                minZoom:2
+            };
+
+            map = new google.maps.Map(document.getElementById('location-canvas'),
+                    mapOptions);
+
+            marker = new google.maps.Marker({
+                map: map,
+                draggable: true,
+                position: new google.maps.LatLng(laa, lonn)
+            });
+
+            function showPosition(position) {
+                center = new google.maps.LatLng(position.coords.latitude,position.coords.longitude)
+                marker.setPosition(center);
+                map.panTo(center);
+            }
+
+            function bind(domElement, eventName)
+            {
+                google.maps.event.addListener(domElement, eventName, function ()
+                {
+                });
+            }
+
+            bind(map, 'zoom_changed');
+
+            function common()
+            {
+                var bounds = map.getBounds();
+                var southWest = bounds.getSouthWest();
+                var northEast = bounds.getNorthEast();
+                var getcentre=bounds.getCenter();
+                var ne = map.getBounds().getNorthEast();
+                var sw = map.getBounds().getSouthWest();
+                var zoom=map.getZoom();
+                var centre_lat=getcentre.lat();
+                var centre_long=getcentre.lng();
+                var myLatlng=new google.maps.LatLng(centre_lat,centre_long);
+                var mapProp =
+                {
+                    center: new google.maps.LatLng(centre_lat,centre_long),
+                    zoom:zoom,
+                    maxZoom: 8,
+                    minZoom:2,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                };
+
+            }
+        }
+
+        google.maps.event.addDomListener(window, 'resize', initialize);
+        google.maps.event.addDomListener(window, 'load', initialize);
+
+        function init1(data1){
+            /*map = new google.maps.Map(document.getElementById('location-canvas'), {
+                zoom: 8,
+                center: {lat: parseFloat(data1[0]["loc"]["coordinates"][1]), lng: parseFloat(data1[0]["loc"]["coordinates"][0])},
+                mapTypeId: google.maps.MapTypeId.SATELLITE
+            });*/
+
+            if(heatmap != null){
+                heatmap.setMap(null)
+                //heatmap.store.setDataSet({data:[]});
+            }
+
+            heatmap = new google.maps.visualization.HeatmapLayer({
+                data: getPoints(data1),
+                map: map
+            });
+
+            function toggleHeatmap() {
+                heatmap.setMap(heatmap.getMap() ? null : map);
+            }
+
+            function changeGradient(){
+                var gradient = [
+                    'rgba(0, 255, 255, 0)',
+                    'rgba(0, 255, 255, 1)',
+                    'rgba(0, 191, 255, 1)',
+                    'rgba(0, 127, 255, 1)',
+                    'rgba(0, 63, 255, 1)',
+                    'rgba(0, 0, 255, 1)',
+                    'rgba(0, 0, 223, 1)',
+                    'rgba(0, 0, 191, 1)',
+                    'rgba(0, 0, 159, 1)',
+                    'rgba(0, 0, 127, 1)',
+                    'rgba(63, 0, 91, 1)',
+                    'rgba(127, 0, 63, 1)',
+                    'rgba(191, 0, 31, 1)',
+                    'rgba(255, 0, 0, 1)'
+                ]
+                heatmap.set('gradient', heatmap.get('gradient') ? null : gradient);
+
+            }
+
+            function changeRadius() {
+                heatmap.set('radius', heatmap.get('radius') ? null : 20);
+            }
+
+            function changeOpacity() {
+                heatmap.set('opacity', heatmap.get('opacity') ? null : 0.2);
+            }
+
+            function getPoints(data1) {
+                var points = []
+                for (i = 0; i < data1.length; i++) {
+                    var dataObject = data1[i];
+                    points.push({'location': new google.maps.LatLng(parseFloat(dataObject["loc"]["coordinates"][1]),
+                            parseFloat(dataObject["loc"]["coordinates"][0])),'weight' : 100*dataObject['ue_battery_power']});
+                }
+                return points;
+            }
+
+        }
+
+        function populateTable1(data){
+            var len = 1;
+            var txt = "<tbody id=tableBody><tr><th>Latitude</th><th>Longitde</th><th>Power</th></tr>";
+            if(Array.isArray(data)){
+                len = data.length;
+                if(len > 0){
+                    for(var i=0;i<len;i++){
+                        if(data[i].loc.coordinates[1] != null && data[i].loc.coordinates[0] != null && data[i].ue_battery_power != null){
+                            txt += "<tr><td>"+data[i].loc.coordinates[1]+"</td><td>"+data[i].loc.coordinates[0]+"</td><td>"+data[i].ue_battery_power+"</td></tr>";
+                        }
+                    }
+                }
+            }
+            else{
+                txt += "<tr><td>"+data.loc.coordinates[1]+"</td><td>"+data.loc.coordinates[0]+"</td><td>"+data.ue_battery_power+"</td></tr>";
+            }
+            txt += "</tbody>";
+            $("#tableBody").replaceWith(txt);
+        }
+
+        function fillDropDown(){
+            $.ajax({
+                url: "{% url 'ui_heatmap' %}",
+                type: "GET",
+                success: function(data) {
+                    if(data){
+                        $.each(data, function(index, item) {
+                            $("#txn").get(0).options[$("#txn").get(0).options.length] = new Option(item, item);
+                        });
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            $("#txn").change(function() {
+                $.ajax({
+                    url: "{% url 'ui_heatmap' %}",
+                    type: "POST",
+                    data: $(this).serialize(),
+                    success: function(data) {
+                        if(data){
+                            //initialize(data);
+                            populateTable1(data);
+                            init1(data);
+                            //populateMap(data);
+                        }
+                    }
+                });
+            });
+        });
+
+    </script>
+{% endblock %}
+
+{% block extra_styles %}
+    <style>
+        table, th, td {
+            text-align: center;
+            vertical-align: top
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/geo-explorer.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/keen-dashboards.css" />
+{% endblock %}
+
+{% block body_base %}
+    <div id="app-wrapper">
+        <div id='app-maparea' style='height:100%; position:fixed;'>
+            <div id='location-canvas' style='width:100%;height:100%;'>
+            </div>
+        </div>
+
+        <div id="app-sidebar">
+            <div class="chart-wrapper">
+                <div class="chart-title">
+                    Select Channel
+                </div>
+
+                <div class="chart-stage">
+                    <label >Channel : </label>
+                    <select name="txn" id="txn" class="fixed form-control">
+                        <option selected="selected">Select</option>
+                        {% for channel in channels %}
+                            <option>{{channel}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="chart-wrapper">
+                <div class="chart-title">
+                    Query Result Table 1
+                </div>
+                <div class="chart-stage">
+                    <table id="table" style="border-collapse: separate; border-spacing: 10px;">
+                        <tbody id="tableBody" >
+                        <tr>
+                            <th>Latitude</th>
+                            <th>Longitde</th>
+                            <th>Power</th>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

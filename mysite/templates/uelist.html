@@ -1,0 +1,78 @@
+<!-- Developers : Daljeet Singh Chhabra-->
+
+{% extends "site_base.html" %}
+
+{% load i18n %}
+
+{% block head_title %}User Equipments{% endblock %}
+
+{% block body_class %}ue{% endblock %}
+
+{# Remove the Jumbotron grey area #}
+{% block upperbody_base %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    UE List
+{% endblock %}
+
+{% block extra_styles %}
+    <style type="text/css">
+        table, th, td {
+            text-align: center;
+            vertical-align: top;
+        }
+        div.space_link { width: 100%; height: 100%;}
+    </style>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        function explode(){
+          $('#uelistTable').load(document.URL +  ' #uelistTable');
+        }
+        setInterval(explode, 10000);
+    </script>
+
+{% endblock %}
+
+{% block body %}
+
+    <table class="table" id="uelistTable">
+        <thead>
+            <th></th>
+            <th>MAC Address</th>
+            <th>Model</th>
+            <th colspan="2">Last Known Location</th>
+            <th></th>
+        </thead>
+        <tbody>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+            <th></th>
+        </tr>
+        {% for ue in ue_list %}
+            <tr>
+                <td>{% if ue.status == "ONLINE" %}
+                        <img src="{{ STATIC_URL }}assets/online_button.png" style="width:15px; height:15px"/>
+                    {% else %}
+                        <img src="{{ STATIC_URL }}assets/offline_button.png" style="width:20px; height:20px"/>
+                    {% endif %}
+                </td>
+                <th><a href="{% url 'ui_ue_detail' ue_id=ue.id %}">{{ ue.mac }}</a></th>
+                <td>{{ ue.model }}</td>
+                <td>{{ ue.last_latitude }}</td>
+                <td>{{ ue.last_longitude }}</td>
+                <td>
+                    <a href="" class="btn btn-primary">Scan</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

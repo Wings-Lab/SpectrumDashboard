@@ -1,0 +1,5 @@
+Django
+pinax-theme-bootstrap
+django-geoposition
+django-easy-maps
+pymongo

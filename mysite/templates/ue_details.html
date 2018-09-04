@@ -1,0 +1,90 @@
+<!-- Developers : Isha Khanna and Daljeet Singh Chhabra-->
+
+{% extends "site_base.html" %}
+
+{% load i18n %}
+
+{% block head_title %}User Equipments{% endblock %}
+
+{% block body_class %}ue{% endblock %}
+
+{% block breadcrumbs %}
+    <a href="{% url 'ui_ue_info' %}">{% trans "UE List" %}</a> >
+    {{ ue.mac }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  <script type="text/javascript">
+    google.load('visualization', '1.1', {packages: ['line']});
+    google.setOnLoadCallback(drawChart);
+
+    function explode(){
+          window.location.reload();
+        }
+    setInterval(explode, 10000);
+
+    function drawChart() {
+
+      var data = new google.visualization.DataTable();
+      data.addColumn('number', 'Reading Index');
+      data.addColumn('number', 'Power');
+
+
+      data.addRows(
+        [
+        {% for measurement in ue.measurements %}
+            [{{ forloop.counter }}, {{ measurement.channel_power }}],
+        {% endfor %}
+        ]
+      );
+
+      var options = {
+        chart: {
+          title: 'UE Specific Power Timeline',
+          subtitle: 'Last {{ ue.measurements|length }} measurements'
+        },
+        width: 900,
+        height: 500
+      };
+
+      var chart = new google.charts.Line(document.getElementById('linechart_material'));
+
+      chart.draw(data, options);
+    }
+  </script>
+{% endblock %}
+
+{% block upper_body %}
+    <table class="table">
+        <thead>
+            <th>MAC Address</th>
+            <th>{{ ue.mac }}</th>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Model</td>
+                <td>{{ ue.model }}</td>
+            </tr>
+            <tr>
+                <td>Status</td>
+                <td>{{ ue.status }}</td>
+            </tr>
+            <tr>
+                <td>Number of measurements</td>
+                <td>{{ ue.total_measurements }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <div>
+        <a href="" class="btn btn-primary">Scan</a>
+    </div>
+{% endblock %}
+
+{% block body %}
+    <div class="chart-wrapper" >
+        <div style="margin: 10px;">
+            <div id="linechart_material" class="chart-stage"></div>
+        </div>
+    </div>
+{% endblock %}

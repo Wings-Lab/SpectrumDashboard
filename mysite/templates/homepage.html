@@ -1,0 +1,281 @@
+<!-- Developers : Isha Khanna and Daljeet Singh Chhabra-->
+
+{% extends "site_base.html" %}
+
+{% load i18n %}
+
+{% block head_title %}Home{% endblock %}
+
+{% block body_class %}home application{% endblock %}
+
+{% block extra_styles %}
+    <style>
+        table, th, td {
+            text-align: center;
+            vertical-align: top
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/geo-explorer.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/keen-dashboards.css" />
+
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="http://malsup.github.com/jquery.form.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.js"></script>
+    <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCSL7fyttFUapg8rXDc95zzkuIqPFTzEgM"></script>
+
+    <script type="text/javascript">
+
+        var laa = 0;
+        var lonn = 0;
+
+        $(document).ready(function() {
+
+            $('#form').submit(function(e){
+                $.ajax({
+                    url: "{% url 'ui_geo_query' %}",
+                    type: "POST",
+                    data: $(this).serialize(),
+                    success: function(data) {
+                        if(data){
+                            populateTable1(data.table1)
+                            populateTable2(data.table2)
+                        }
+                    }
+                });
+                e.preventDefault();
+            });
+        });
+
+        function populateTable1(data){
+            var len = 1;
+            var txt = "<tbody id=tableBody>";
+            if(Array.isArray(data)){
+                len = data.length;
+                if(len > 0){
+                    for(var i=0;i<len;i++){
+                        if(data[i].channel && data[i].power){
+                            txt += "<tr><td>"+data[i].channel+"</td><td>"+data[i].power+"</td></tr>";
+                        }
+                        /*if(data[i].mac && data[i].ue_channel_scanned){
+                         txt += "<tr><td>"+data[i].mac+"</td><td>"+data[i].ue_channel_scanned+"</td></tr>";
+                         }*/
+                    }
+                    document.getElementById("warningDiv").innerHTML = "";
+                }
+                else{
+                    document.getElementById("warningDiv").innerHTML = "No Records Found!";
+                }
+            }
+            else{
+                txt += "<tr><td>"+data.channel+"</td><td>"+data.power+"</td></tr>";
+            }
+            txt += "</tbody>";
+            $("#tableBody").replaceWith(txt);
+
+        }
+
+        function populateTable2(data){
+            var len = 1;
+            var txt = "<tbody id=tableBody2>";
+            if(Array.isArray(data)){
+                len = data.length;
+                if(len > 0){
+                    for(var i=0;i<len;i++){
+                        if(data[i].mac && data[i].ue_status){
+                            //txt += "<tr><td>"+data[i].mac+"</td><td>"+data[i].ue_status+"</td></tr>";
+                            var macurl = "ue/"+(data[i].mac.split(':').join([separator = '']));
+                            txt += "<tr><td><a href="+macurl+">"+data[i].mac+"</a></td><td>"+data[i].ue_status+"</td></tr>";
+                        }
+                    }
+                }
+            }
+            else{
+                txt += "<tr><td>"+data.mac+"</td><td>"+data.ue_status+"</td></tr>";
+            }
+            txt += "</tbody>";
+            $("#tableBody2").replaceWith(txt);
+
+        }
+
+        function initialize()
+        {
+
+            if (navigator.geolocation) {
+                var geoSuccess = function(position) {
+                    laa = position.coords.latitude;
+                    lonn = position.coords.longitude;
+                    showPosition(position);
+                };
+                navigator.geolocation.getCurrentPosition(geoSuccess);
+            } else {
+                window.alert("Geolocation is not supported by this browser.");
+            }
+
+            var mapOptions =
+            {
+                zoom: 10,
+                center: new google.maps.LatLng(laa, lonn),
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                maxZoom: 20,
+                minZoom:2
+            };
+
+            var map = new google.maps.Map(document.getElementById('location-canvas'),
+                    mapOptions);
+
+            var marker = new google.maps.Marker({
+                map: map,
+                draggable: true,
+                position: new google.maps.LatLng(laa, lonn)
+            });
+
+            var sunCircle = {
+                strokeColor: "#49c3fc",
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: "#49c3fc",
+                fillOpacity: 0.35,
+                map: map,
+                center: marker.position,
+                radius: 10000, // in meters
+                editable: true
+            };
+
+            cityCircle = new google.maps.Circle(sunCircle)
+            cityCircle.bindTo('center', marker, 'position');
+
+            function showPosition(position) {
+                center = new google.maps.LatLng(position.coords.latitude,position.coords.longitude)
+                marker.setPosition(center);
+                map.panTo(center);
+                document.getElementById("lat").value = marker.position.lat();
+                document.getElementById("lon").value = marker.position.lng();
+                document.getElementById("rad").value = (parseFloat(cityCircle.getRadius())*(0.000621371)).toString() ;
+            }
+
+            function bind(domElement, eventName)
+            {
+                google.maps.event.addListener(domElement, eventName, function ()
+                {
+                    //window.alert(cityCircle.getRadius());
+                    document.getElementById("lat").value = marker.position.lat();
+                    document.getElementById("lon").value = marker.position.lng();
+                    document.getElementById("rad").value = (parseFloat(cityCircle.getRadius())*(0.000621371)).toString() ;
+                });
+            }
+            document.getElementById("lat").value = marker.position.lat();
+            document.getElementById("lon").value = marker.position.lng();
+
+            bind(map, 'zoom_changed');
+            //bind(map, 'center_changed');
+            //bind(map, 'tilesloaded');
+            //bind(map, 'idle');
+            bind(marker, 'dragend');
+            bind(cityCircle, 'radius_changed');
+
+            function common()
+            {
+                var bounds = map.getBounds();
+                var southWest = bounds.getSouthWest();
+                var northEast = bounds.getNorthEast();
+                var getcentre=bounds.getCenter();
+                var ne = map.getBounds().getNorthEast();
+                var sw = map.getBounds().getSouthWest();
+                var zoom=map.getZoom();
+                var centre_lat=getcentre.lat();
+                var centre_long=getcentre.lng();
+                var myLatlng=new google.maps.LatLng(centre_lat,centre_long);
+                var mapProp =
+                {
+                    center: new google.maps.LatLng(centre_lat,centre_long),
+                    zoom:zoom,
+                    maxZoom: 8,
+                    minZoom:2,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                };
+
+            }
+        }
+
+        google.maps.event.addDomListener(window, 'resize', initialize);
+        google.maps.event.addDomListener(window, 'load', initialize);
+
+    </script>
+{% endblock %}
+
+{% block body_base %}
+    <div id="app-wrapper">
+        <div id='app-maparea' style='height:100%; position:fixed;'>
+            <div id='location-canvas' style='width:100%;height:100%;'>
+            </div>
+        </div>
+
+        <div id="app-sidebar">
+            <div class="chart-wrapper">
+                <div class="chart-title">
+                    Input the query region
+                </div>
+                <div class="chart-stage">
+
+                    <form action="{% url 'ui_geo_query' %}" method="post", id="form">
+                        {% csrf_token %}
+                        <label >Latitude : </label>
+                        <input id="lat" type="text" name="lat" class="form-control" value="0.0">
+                        <br>
+                        <label >Longitude : </label>
+                        <input id="lon" type="text" name="lon" class="form-control" value="0.0">
+                        <br>
+                        <label>Radius (in miles) :  </label>
+                        <input id="rad" type="text" name="rad" class="form-control" value="0.0">
+                        <br>
+                        <button type="submit" class="btn btn-primary">Retrieve</button>
+                    </form>
+                    <span class="help-block" style="color: #A94442;" id="warningDiv"></span>
+                    {% comment %}
+                    <div class="container">
+                        <div id="warningDiv">
+                        </div>
+                    </div>
+                    {% endcomment %}
+
+                </div>
+            </div>
+
+            <div class="chart-wrapper">
+                <div class="chart-title">
+                    Average Power per Channel
+                </div>
+                <div class="chart-stage">
+                    <table id="table" class="table" style="border-collapse: separate; border-spacing: 10px;">
+                        <thead>
+                            <th>Channel</th>
+                            <th>Average Power</th>
+                        </thead>
+                        <tbody id="tableBody" >
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+
+            <div class="chart-wrapper">
+                <div class="chart-title">
+                    Available UEs within the query region
+                </div>
+                <div class="chart-stage">
+                    <table id="table2" class="table" style="border-collapse: separate; border-spacing: 10px;">
+                        <thead>
+                            <th>Mac</th>
+                            <th>UE Status</th>
+                        </thead>
+                        <tbody id="tableBody2" >
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

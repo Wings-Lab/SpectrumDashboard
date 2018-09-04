@@ -1,0 +1,63 @@
+{% extends "theme_bootstrap/base.html" %}
+
+{% load staticfiles %}
+{% load i18n %}
+
+
+{% block nav %}
+    <ul class="nav navbar-nav">
+        <li id="tab_home"><a href="{% url 'home' %}">{% trans "Home" %}</a></li>
+        <li id="tab_heatmap"><a href="{% url 'ui_heatmap' %}">{% trans "Heatmap" %}</a></li>
+        <li id="tab_ue"><a href="{% url 'ui_ue_info' %}">{% trans "User Equipments" %}</a></li>
+    </ul>
+{% endblock %}
+
+{% block styles %}
+    {% include "_styles.html" %}
+    {% block extra_styles %}
+    {% endblock %}
+{% endblock %}
+
+
+{% block extra_head_base %}
+    {% block extra_head %}{% endblock %}
+{% endblock %}
+
+{% block body_base %}
+    {% block breadcrumb_base %}
+        <div class="breadcrumb container">
+            {% block breadcrumbs %}{% endblock %}
+        </div>
+    {% endblock %}
+    {% block upperbody_base %}
+        <section class="jumbotron">
+            <div class="container">
+                {% block upper_body %}
+                {% endblock %}
+            </div>
+        </section>
+    {% endblock %}
+
+    <section id="content_body">
+        <div class="container">
+            {% include "_messages.html" %}
+            {% block body %}
+            {% endblock %}
+        </div>
+    </section>
+{% endblock %}
+
+{% block footer %}
+    {% include "_footer.html" %}
+{% endblock %}
+
+
+{% block scripts %}
+    {% include "_scripts.html" %}
+    {% block extra_scripts %}
+    {% endblock %}
+{% endblock %}
+
+{% block extra_body_base %}
+    {% block extra_body %}{% endblock %}
+{% endblock %}
